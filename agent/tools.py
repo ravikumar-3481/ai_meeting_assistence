@@ -65,10 +65,6 @@ def process_new_meeting(source: str, language: str = "english") -> str:
         text_chunks = _chunking.chunking(transcript)
         vectors = _embedding.embed_batch(text_chunks)
         set_session_transcript(text_chunks, vectors)
-        try:
-            _embedding.store_embeddings(text_chunks, vectors, namespace=os.path.basename(source))
-        except Exception as e:
-            log.warning(f"Cloud storage skipped: {e}")
         return f"Meeting processed successfully. {len(text_chunks)} chunks are ready for search and summary."
     except Exception as e:
         log.error(f"process_new_meeting failed: {e}")

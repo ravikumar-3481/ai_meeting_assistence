@@ -1,42 +1,43 @@
-from langchain.agents import AgentExecutor, create_tool_calling_agent
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain.agents import create_agent
 from agent.prompts.system_prompt import SystemPrompt
 from llm.llm_model import LLM
 from utils.logger import Logger
 from agent.tools import ALL_TOOLS
+from agent.agent_tools import ADVANCED_TOOLS
 
 
 SYSTEM_PROMPT = SystemPrompt().System_Prompt()
 
+
 class MeetingAgent:
-    def __init__(self):
+
+    def __init__(self, verbose: bool = False):
         self.log = Logger().get_logger()
         self.llm = LLM().get_llm(temperature=0.1)
-        self.tools = ALL_TOOLS
-        self.executor = self._build_executor()
+        self.tools = ALL_TOOLS + ADVANCED_TOOLS
+        self.verbose = verbose
 
-    def _build_executor(self) -> AgentExecutor:
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", SYSTEM_PROMPT),
-            MessagesPlaceholder("chat_history", optional=True),
-            ("human", "{input}"),
-            MessagesPlaceholder("agent_scratchpad"),
-        ])
-        agent = create_tool_calling_agent(self.llm, self.tools, prompt)
-        return AgentExecutor(
-            agent=agent,
+        self.agent = create_agent(
+            model=self.llm,
             tools=self.tools,
-            verbose=True,           # set False once you trust it, keeps logs quieter
-            handle_parsing_errors=True,
+            system_prompt=SYSTEM_PROMPT,
         )
 
     def run(self, user_input: str, chat_history: list | None = None) -> str:
+        
         try:
-            result = self.executor.invoke({
-                "input": user_input,
-                "chat_history": chat_history or [],
-            })
-            return result["output"]
+            messages = list(chat_history or [])
+            messages.append(("human", user_input))
+
+            result = self.agent.invoke({"messages": messages})
+
+            final_message = result["messages"][-1]
+            content = getattr(final_message, "content", None)
+
+            if self.verbose:
+                self.log.info(f"Full message trace: {result['messages']}")
+
+            return content if content else "The agent didn't return a response for that."
         except Exception as e:
             self.log.error(f"Agent execution failed: {e}")
             return f"Something went wrong while handling that: {e}"
