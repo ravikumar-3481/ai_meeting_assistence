@@ -1,0 +1,30 @@
+
+deepgram-sdk
+# ===== YouTube & Audio Handling =====
+yt-dlp==2024.8.6
+pydub==0.25.1
+ffmpeg-python==0.2.0
+pypdf==5.0.1
+
+# ===== LangChain (LCEL) + Mistral =====
+langchain==0.3.1
+langchain-core==0.3.6
+langchain-community==0.3.1
+langchain-mistralai==0.2.0
+mistralai==1.1.0
+
+# ===== RAG: Vector Store + Embeddings =====
+chromadb==0.5.5
+#langchain-chroma==0.1.4
+langchain-huggingface==0.1.0
+
+# ===== PDF / TXT Export =====
+fpdf2==2.7.9
+reportlab==4.2.2
+
+# ===== Utilities =====
+python-dotenv==1.0.1
+numpy==1.26.4
+tqdm==4.66.5
+pydantic-settings
+rich
