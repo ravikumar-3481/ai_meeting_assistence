@@ -1,69 +1,19 @@
 from langchain_core.messages import HumanMessage, AIMessage
 from utils.logger import Logger
 import re
-from rag_core.chunking import Chunking
-from rag_core.embedding import Embeddings
-from rag_core.vector_db import VectorStore          # NEW
-from utils.tools import Tools                            # NEW
-from agent.tools import set_session_transcript
 from agent.agent_core import MeetingAgent
+from rag_core.rag_pipline import RagPipeline
 
 log = Logger().get_logger()
+rag = RagPipeline()
 
-TRANSCRIPT_PATH = "data/transcripts/transcript.txt"
-CHUNK_SIZE = 900
-CHUNK_OVERLAP = 180
-MAX_HISTORY_TURNS = 6  # keep last N human/AI turns so the prompt doesn't grow forever
+def main(url : str, language : str = "english"):
+    MAX_HISTORY_TURNS = 6
+    meeting_id , title = rag.rag_pipeline(url, language=language)
+    log.info(f"[bold cyan]Active meeting ID: {meeting_id}[/bold cyan]\n")  
+    log.info(f"[bold green]Active meeting : {title}[/bold green]\n") 
 
-
-def load_transcript(path: str) -> str:
-    with open(path, "r", encoding="utf-8") as f:
-        return f.read().replace("\n", "").replace("\r", "").strip()
-
-
-def prepare_session() -> str:
-    log.info("Loading transcript...\n")
-    transcript = load_transcript(TRANSCRIPT_PATH)
-    if not transcript:
-        raise ValueError(f"Transcript at '{TRANSCRIPT_PATH}' is empty or missing.")
-
-    chunking = Chunking()
-    embedding = Embeddings()
-    vector_store = VectorStore()   
-    tools = Tools()                
-
-    chunks = chunking.chunking(transcript, chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
-    log.info(f"Total chunks created: {len(chunks)}\n")
-    if not chunks:
-        raise ValueError("Chunking produced 0 chunks — check the transcript content.")
-
-    embedding_vector = embedding.embed_batch(chunks)
-    log.info(f"Embeddings ready for {len(chunks)} chunks "
-              f"({len(embedding_vector[0])} dimensions).\n")
-
-    set_session_transcript(chunks, embedding_vector)
-    
-
-    meeting_id = tools.generate_meeting_id(TRANSCRIPT_PATH)
-    try:
-        vector_store.store_embeddings(meeting_id, chunks, embedding_vector)
-        log.info(f"Meeting stored in Pinecone as '{meeting_id}'.\n")
-    except Exception as e:
-        
-        
-        log.warning(f"Could not persist meeting to Pinecone: {e}\n")
-
-    log.info("Session ready. The agent can now search, summarize, and generate "
-              "action items / minutes / follow-up emails for this meeting.\n")
-
-    return meeting_id  
-
-
-def main():
-    meeting_id = prepare_session()
-    log.info(f"[bold cyan]Active meeting ID: {meeting_id}[/bold cyan]\n")  # NEW
-
-    agent = MeetingAgent(verbose=False)  # flip to True if you want to see tool-selection reasoning
+    agent = MeetingAgent(verbose=False)  
     chat_history: list = []
 
     log.info("[bold green]Agent ready.[/bold green] Ask anything about the meeting "
