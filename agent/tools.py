@@ -8,8 +8,12 @@ from audio.audio_processor import AudioProcessor
 from audio.transcribe import Transcriber
 from utils.tools import DirectoryManager
 from utils.logger import Logger
+from rag_core.vector_db import VectorStore
+from utils.tools import Tools
 
 log = Logger().get_logger()
+_vector_store = VectorStore()
+_tools = Tools()
 
 _embedding = Embeddings()
 _chunking = Chunking()
@@ -64,8 +68,18 @@ def process_new_meeting(source: str, language: str = "english") -> str:
         transcript = _transcriber.transcribe(audio_chunks, language=language)
         text_chunks = _chunking.chunking(transcript)
         vectors = _embedding.embed_batch(text_chunks)
+
+        # local session (existing behavior — unchanged)
         set_session_transcript(text_chunks, vectors)
-        return f"Meeting processed successfully. {len(text_chunks)} chunks are ready for search and summary."
+
+        # NEW: persist to Pinecone under a unique meeting_id
+        meeting_id = _tools.generate_meeting_id(source)
+        _vector_store.store_embeddings(meeting_id, text_chunks, vectors)
+
+        return (
+            f"Meeting processed successfully as '{meeting_id}'. "
+            f"{len(text_chunks)} chunks are ready for search and summary."
+        )
     except Exception as e:
         log.error(f"process_new_meeting failed: {e}")
         return f"Failed to process meeting: {e}"

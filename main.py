@@ -3,6 +3,8 @@ from utils.logger import Logger
 import re
 from rag_core.chunking import Chunking
 from rag_core.embedding import Embeddings
+from rag_core.vector_db import VectorStore          # NEW
+from utils.tools import Tools                            # NEW
 from agent.tools import set_session_transcript
 from agent.agent_core import MeetingAgent
 
@@ -16,10 +18,10 @@ MAX_HISTORY_TURNS = 6  # keep last N human/AI turns so the prompt doesn't grow f
 
 def load_transcript(path: str) -> str:
     with open(path, "r", encoding="utf-8") as f:
-        return f.read().replace("\n", " ").replace("\r", " ").strip()
+        return f.read().replace("\n", "").replace("\r", "").strip()
 
 
-def prepare_session() -> None:
+def prepare_session() -> str:
     log.info("Loading transcript...\n")
     transcript = load_transcript(TRANSCRIPT_PATH)
     if not transcript:
@@ -27,6 +29,8 @@ def prepare_session() -> None:
 
     chunking = Chunking()
     embedding = Embeddings()
+    vector_store = VectorStore()   
+    tools = Tools()                
 
     chunks = chunking.chunking(transcript, chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
     log.info(f"Total chunks created: {len(chunks)}\n")
@@ -38,12 +42,26 @@ def prepare_session() -> None:
               f"({len(embedding_vector[0])} dimensions).\n")
 
     set_session_transcript(chunks, embedding_vector)
+    
+
+    meeting_id = tools.generate_meeting_id(TRANSCRIPT_PATH)
+    try:
+        vector_store.store_embeddings(meeting_id, chunks, embedding_vector)
+        log.info(f"Meeting stored in Pinecone as '{meeting_id}'.\n")
+    except Exception as e:
+        
+        
+        log.warning(f"Could not persist meeting to Pinecone: {e}\n")
+
     log.info("Session ready. The agent can now search, summarize, and generate "
               "action items / minutes / follow-up emails for this meeting.\n")
 
+    return meeting_id  
+
 
 def main():
-    prepare_session()
+    meeting_id = prepare_session()
+    log.info(f"[bold cyan]Active meeting ID: {meeting_id}[/bold cyan]\n")  # NEW
 
     agent = MeetingAgent(verbose=False)  # flip to True if you want to see tool-selection reasoning
     chat_history: list = []

@@ -1,5 +1,7 @@
 import os
 import re
+import uuid
+import datetime
 import shutil
 
 
@@ -46,3 +48,20 @@ class Tools:
           text = text.strip()
           text = text.replace("\n", " ")
           return text    
+
+    def generate_meeting_id(self, source: str = "") -> str:
+        """
+        Generate a unique, filesystem/namespace-safe meeting ID.
+        Format: YYYYMMDD_<slug-of-source>_<short-uuid>
+        Example: 20260807_q3-planning-call_a1b2c3
+        """
+        date_tag = datetime.date.today().strftime("%Y%m%d")
+
+        # slugify the source (URL or filename) so it's safe as a namespace
+        slug_source = source or "meeting"
+        slug = re.sub(r"[^a-zA-Z0-9]+", "-", slug_source).strip("-").lower()
+        slug = slug[:40] if slug else "meeting"  # keep it short
+
+        short_uuid = uuid.uuid4().hex[:6]
+
+        return f"{date_tag}_{slug}_{short_uuid}"

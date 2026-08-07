@@ -17,6 +17,7 @@ mistralai==1.1.0
 chromadb==0.5.5
 #langchain-chroma==0.1.4
 langchain-huggingface==0.1.0
+pinecone
 
 # ===== PDF / TXT Export =====
 fpdf2==2.7.9
