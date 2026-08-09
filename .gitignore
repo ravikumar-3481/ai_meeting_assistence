@@ -1,0 +1,67 @@
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+.env/
+
+# Environment variables files
+.env
+.env.*
+
+# Audio downloads, outputs & temporary runtime data
+data/downloads/*
+data/outputs/*
+!data/downloads/.gitkeep
+!data/outputs/.gitkeep
+
+# Logs and databases
+*.log
+*.sqlite3
+*.db
+
+# Test coverage
+htmlcov/
+.coverage
+.coverage.*
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.iml
+*.swp
+*.tmp
+*.temp
+*~
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/
+# Other 
+testing/
+trigger.py
+testing.py
+text_process.py
+skills-lock.json
+conftest.py
+tests/
+test_*.py
+text_process.py
+.agents/
+data/
