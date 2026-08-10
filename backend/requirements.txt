@@ -1,27 +1,41 @@
+# Audio & transcription
 deepgram-sdk
 yt-dlp==2024.8.6
 pydub==0.25.1
 ffmpeg-python==0.2.0
-pypdf==5.0.1
+requests
 
+# LangChain / LLM
 langchain==0.3.1
 langchain-core==0.3.6
-langchain-community==0.3.1
+langchain-text-splitters
 langchain-mistralai==0.2.0
 mistralai==1.1.0
-
-chromadb==0.5.5
+langchain-community==0.3.1
 langchain-huggingface==0.1.0
+
+# Embeddings & retrieval
+huggingface_hub
+scikit-learn
 pinecone
 
+# Document generation
+pypdf==5.0.1
 fpdf2==2.7.9
 reportlab==4.2.2
 
+# Backend / API
+fastapi
+uvicorn
+python-multipart
+pydantic-settings
+
+# Database & auth
+supabase
+bcrypt==4.2.0
+
+# Utilities
 python-dotenv==1.0.1
 numpy==1.26.4
 tqdm==4.66.5
-pydantic-settings
 rich
-supabase
-fastapi
-uvicorn
