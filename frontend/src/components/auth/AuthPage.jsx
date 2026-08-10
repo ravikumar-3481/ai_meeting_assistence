@@ -10,7 +10,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function AuthPage() {
-  const { authTab, setAuthTab, login, signup, resetPassword, demoLogin, navigateTo, error, setError, loading } = useAuth();
+  const { authTab, setAuthTab, login, signup, resetPassword, navigateTo, error, setError, loading } = useAuth();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -93,20 +93,6 @@ export default function AuthPage() {
               <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-400 flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
                 <span>{resetSentMessage}</span>
-              </div>
-            )}
-
-            {/* Quick Demo Login Pill (only on login/signup) */}
-            {authTab !== 'forgot_password' && (
-              <div className="mb-6">
-                <button
-                  type="button"
-                  onClick={() => demoLogin()}
-                  className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Zap className="w-4 h-4 fill-amber-400 text-amber-400" />
-                  ⚡ Quick 1-Click Workspace Access (Demo Mode)
-                </button>
               </div>
             )}
 
@@ -283,7 +269,7 @@ export default function AuthPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    onClick={() => demoLogin()}
+                    onClick={() => setError('Google SSO requires OAuth provider keys configured in your Supabase project dashboard.')}
                     className="py-2.5 px-3 rounded-xl bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-xs font-medium text-zinc-300 flex items-center justify-center gap-2 transition-colors cursor-pointer"
                   >
                     <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -297,7 +283,7 @@ export default function AuthPage() {
 
                   <button
                     type="button"
-                    onClick={() => demoLogin()}
+                    onClick={() => setError('GitHub OAuth requires provider keys configured in your Supabase project dashboard.')}
                     className="py-2.5 px-3 rounded-xl bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-xs font-medium text-zinc-300 flex items-center justify-center gap-2 transition-colors cursor-pointer"
                   >
                     <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24">

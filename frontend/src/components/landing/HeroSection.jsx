@@ -8,7 +8,7 @@ import {
 import { motion } from 'framer-motion';
 
 export default function HeroSection() {
-  const { navigateTo, demoLogin } = useAuth();
+  const { navigateTo } = useAuth();
 
   return (
     <section className="relative pt-12 pb-20 md:pt-20 md:pb-32 overflow-hidden bg-zinc-950 text-white">
@@ -75,14 +75,6 @@ export default function HeroSection() {
             >
               Start Free Trial
               <ArrowRight className="w-5 h-5" />
-            </button>
-
-            <button
-              onClick={() => demoLogin()}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-2xl text-base font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20 transition-all cursor-pointer backdrop-blur-sm"
-            >
-              <Zap className="w-5 h-5 text-amber-400 fill-amber-400" />
-              1-Click Demo Access
             </button>
 
             <button

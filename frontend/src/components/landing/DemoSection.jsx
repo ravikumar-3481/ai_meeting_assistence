@@ -8,7 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 
 export default function DemoSection() {
-  const { demoLogin } = useAuth();
+  const { navigateTo } = useAuth();
   const [meetings, setMeetings] = useState([]);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
   const [activeTab, setActiveTab] = useState('summary');
@@ -167,10 +167,10 @@ export default function DemoSection() {
 
                 <div className="pt-2">
                   <button
-                    onClick={() => demoLogin()}
+                    onClick={() => navigateTo('auth', 'signup')}
                     className="w-full py-3 px-4 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    Open Live Supabase Workspace <ArrowRight className="w-4 h-4" />
+                    Get Started Free <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
               </div>

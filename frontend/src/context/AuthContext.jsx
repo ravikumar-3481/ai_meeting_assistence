@@ -12,7 +12,6 @@ const AuthContext = createContext({
   login: async () => {},
   signup: async () => {},
   resetPassword: async () => {},
-  demoLogin: async () => {},
   logout: async () => {},
   setAuthTab: () => {},
   setError: () => {},
@@ -135,21 +134,6 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const demoLogin = async () => {
-    // Standard workspace access
-    localStorage.setItem('meeting_sense_token', 'demo_access_token');
-    const demoUser = {
-      id: '930c2fca-3151-4094-a409-91d55e26cac4',
-      email: 'ravivish517@gmail.com',
-      name: 'Ravi Kumar',
-      role: 'Product Lead',
-    };
-    setUser(demoUser);
-    localStorage.setItem('meeting_sense_user', JSON.stringify(demoUser));
-    setIsAuthenticated(true);
-    setActiveView('app');
-  };
-
   const logout = async () => {
     await api.logout();
     setUser(null);
@@ -170,7 +154,6 @@ export function AuthProvider({ children }) {
         login,
         signup,
         resetPassword,
-        demoLogin,
         logout,
         setAuthTab,
         setError,

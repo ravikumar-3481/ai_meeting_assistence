@@ -5,7 +5,7 @@ import { Sparkles, Menu, X, ArrowRight, Bot } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Navbar() {
-  const { isAuthenticated, activeView, navigateTo, demoLogin } = useAuth();
+  const { isAuthenticated, activeView, navigateTo } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleNavClick = (sectionId) => {
