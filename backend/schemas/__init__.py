@@ -20,6 +20,7 @@ from schemas.user_schema import (
     UserBase,
     UserCreate,
     UserLogin,
+    UserResetPassword,
     UserResponse,
     AuthTokenResponse,
 )

@@ -28,6 +28,11 @@ class UserLogin(BaseModel):
     password: str = Field(..., description="User password")
 
 
+class UserResetPassword(BaseModel):
+    """Schema required for requesting a password reset email."""
+    email: str = Field(..., description="User email address")
+
+
 class UserResponse(UserBase):
     """Schema returned for user details."""
     model_config = ConfigDict(from_attributes=True)

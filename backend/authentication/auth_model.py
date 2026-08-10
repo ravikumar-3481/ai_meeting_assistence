@@ -71,3 +71,14 @@ class AuthService:
             client.auth.sign_out()
         except Exception as e:
             log.warning(f"Sign out failed (non-fatal): {e}")
+
+    def reset_password(self, email: str, redirect_to: str | None = None) -> None:
+        try:
+            options = {}
+            if redirect_to:
+                options["redirectTo"] = redirect_to
+            self._client.auth.reset_password_for_email(email.strip().lower(), options)
+            log.info(f"Supabase reset password email sent for {email}")
+        except Exception as e:
+            log.error(f"Reset password failed for {email}: {e}")
+            raise

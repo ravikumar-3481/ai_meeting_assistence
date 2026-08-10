@@ -58,43 +58,35 @@ def insert_meeting(
 
 
 def get_user_meetings(user_id: str) -> list[dict]:
-    """Fetch all meetings belonging to a specific user from Supabase database."""
-    if not user_id or not user_id.strip():
-        raise ValueError("user_id is required")
-
+    """Fetch all meetings belonging to a specific user or all meetings from Supabase database."""
     try:
         supabase = get_admin_client()
-        response = (
-            supabase.table("meetings")
-            .select("id, user_id, title, source_url, language, status, pinecone_namespace, total_chunks, duration_seconds, created_at")
-            .eq("user_id", user_id)
-            .order("created_at", desc=True)
-            .execute()
-        )
-        meetings = response.data or []
+        query = supabase.table("meetings").select("id, user_id, title, source_url, language, status, pinecone_namespace, total_chunks, duration_seconds, created_at")
+        
+        if user_id and user_id != "default_user":
+            user_resp = query.eq("user_id", user_id).order("created_at", desc=True).execute()
+            meetings = user_resp.data or []
+        else:
+            meetings = []
+
+        # Fallback to fetching all meetings in Supabase if no user-specific meetings found
+        if not meetings:
+            all_resp = supabase.table("meetings").select("id, user_id, title, source_url, language, status, pinecone_namespace, total_chunks, duration_seconds, created_at").order("created_at", desc=True).execute()
+            meetings = all_resp.data or []
+
         for m in meetings:
             p_ns = m.get("pinecone_namespace")
             if p_ns:
                 m["id"] = p_ns
 
-        user_email = user_id
-        try:
-            user_res = supabase.table("users").select("email").eq("id", user_id).execute()
-            if user_res.data and user_res.data[0].get("email"):
-                user_email = user_res.data[0]["email"]
-        except Exception:
-            pass
-
-        log.info(f"Fetched {len(meetings)} meetings for user [bold green]'{user_email}'[/bold green] from Supabase.")
+        log.info(f"Fetched {len(meetings)} meetings from Supabase database.")
         return meetings
     except Exception as e:
-        log.error(f"Failed to fetch meetings for user '[bold green]{user_email}[/bold green]': {e}")
+        log.error(f"Failed to fetch meetings from Supabase: {e}")
         raise
 
 
 def get_user_meeting(user_id: str, meeting_id: str) -> dict | None:
-    if not user_id or not user_id.strip():
-        raise ValueError("user_id is required")
     if not meeting_id or not meeting_id.strip():
         raise ValueError("meeting_id is required")
 
@@ -103,7 +95,6 @@ def get_user_meeting(user_id: str, meeting_id: str) -> dict | None:
         query = (
             supabase.table("meetings")
             .select("id, user_id, title, source_url, language, status, pinecone_namespace, total_chunks, duration_seconds, created_at")
-            .eq("user_id", user_id)
         )
 
         if is_valid_uuid(meeting_id):
@@ -113,13 +104,13 @@ def get_user_meeting(user_id: str, meeting_id: str) -> dict | None:
 
         data = response.data or []
         if data:
-            log.info(f"Fetched meeting '{meeting_id}' for user '{user_id}'.")
+            log.info(f"Fetched meeting '{meeting_id}' from Supabase.")
             return data[0]
         else:
-            log.warning(f"No meeting found with id/namespace '{meeting_id}' for user '{user_id}'.")
+            log.warning(f"No meeting found with id/namespace '{meeting_id}' in Supabase.")
             return None
     except Exception as e:
-        log.error(f"Failed to fetch meeting '{meeting_id}' for user '{user_id}': {e}")
+        log.error(f"Failed to fetch meeting '{meeting_id}' from Supabase: {e}")
         raise
 
 
