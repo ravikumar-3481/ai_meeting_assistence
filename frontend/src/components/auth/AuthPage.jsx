@@ -59,10 +59,8 @@ export default function AuthPage() {
                 onClick={() => navigateTo('landing')}
                 className="inline-flex items-center gap-2 cursor-pointer group"
               >
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-emerald-500 p-[1.5px]">
-                  <div className="w-full h-full bg-zinc-950 rounded-[10.5px] flex items-center justify-center">
-                    <Bot className="w-5 h-5 text-indigo-400" />
-                  </div>
+                <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md">
+                  <Bot className="w-5 h-5" />
                 </div>
                 <span className="font-bold text-xl text-white tracking-tight">MeetingSense AI</span>
               </div>

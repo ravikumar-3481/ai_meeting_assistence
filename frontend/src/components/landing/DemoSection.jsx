@@ -168,7 +168,7 @@ export default function DemoSection() {
                 <div className="pt-2">
                   <button
                     onClick={() => demoLogin()}
-                    className="w-full py-3 px-4 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-indigo-600 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 shadow-lg shadow-indigo-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full py-3 px-4 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
                   >
                     Open Live Supabase Workspace <ArrowRight className="w-4 h-4" />
                   </button>

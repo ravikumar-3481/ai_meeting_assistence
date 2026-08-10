@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart2, Users, PieChart, Clock, Award, Activity } from 'lucide-react';
+import { Users, Clock, Award, Activity } from 'lucide-react';
 
 export default function AnalyticsTab({ participants, duration }) {
   return (
@@ -37,7 +37,7 @@ export default function AnalyticsTab({ participants, duration }) {
 
         <div className="space-y-4">
           {participants.map((p, idx) => {
-            const percentageVal = parseInt(p.timeSpoken.replace('%', '')) || 25;
+            const percentageVal = p.talkTimePercentage || 50;
             return (
               <div key={idx} className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
@@ -46,13 +46,15 @@ export default function AnalyticsTab({ participants, duration }) {
                     <span className="font-semibold text-white">{p.name}</span>
                     <span className="text-zinc-500">({p.role})</span>
                   </div>
-                  <span className="font-mono text-indigo-400 font-bold">{p.timeSpoken}</span>
+                  <span className="font-mono text-indigo-400 font-bold">{percentageVal}%</span>
                 </div>
                 
-                {/* Progress Bar */}
+                {/* Progress Bar with solid color */}
                 <div className="w-full h-2.5 rounded-full bg-zinc-950 overflow-hidden border border-zinc-800">
                   <div
-                    className="h-full bg-gradient-to-r from-indigo-500 to-emerald-400 rounded-full transition-all duration-500"
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      idx === 0 ? 'bg-indigo-600' : 'bg-emerald-600'
+                    }`}
                     style={{ width: `${percentageVal}%` }}
                   />
                 </div>
@@ -67,7 +69,7 @@ export default function AnalyticsTab({ participants, duration }) {
         <h3 className="text-base font-bold text-white">Top Mentioned Keywords</h3>
         <div className="flex flex-wrap gap-2 pt-1">
           {['Whisper v3', 'Latency <300ms', 'WebSocket Stream', 'Claude 3.5 Sonnet', 'Jira Sync', 'Dark Theme UI', 'SOC2 Compliance', 'WebRTC Benchmark'].map((kw, i) => (
-            <span key={i} className="px-3 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs font-mono text-indigo-300">
+            <span key={i} className="px-3 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs font-mono text-indigo-400 font-medium">
               #{kw}
             </span>
           ))}

@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { 
-  Paperclip, Mic, Send, Sparkles, Zap, FileText, CheckSquare, Mail 
+  Paperclip, Mic, Send, FileText, CheckSquare, Mail, Loader2 
 } from 'lucide-react';
 
-export default function ClaudePromptInput({ onSendMessage, onQuickPrompt }) {
+export default function ClaudePromptInput({ onSendMessage, onQuickPrompt, isGenerating }) {
   const [prompt, setPrompt] = useState('');
   const [isRecording, setIsRecording] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!prompt.trim()) return;
+    if (!prompt.trim() || isGenerating) return;
     onSendMessage(prompt);
     setPrompt('');
   };
@@ -28,9 +28,20 @@ export default function ClaudePromptInput({ onSendMessage, onQuickPrompt }) {
   ];
 
   return (
-    <div className="p-4 bg-zinc-950/90 backdrop-blur-xl border-t border-zinc-800/80 sticky bottom-0 z-20">
+    <div className="p-4 bg-zinc-950 border-t border-zinc-800/80 sticky bottom-0 z-20">
       <div className="max-w-4xl mx-auto space-y-3">
         
+        {/* Input Locking Banner when AI response is generating */}
+        {isGenerating && (
+          <div className="p-2.5 rounded-xl bg-indigo-950/60 border border-indigo-500/30 text-xs text-indigo-300 flex items-center justify-between">
+            <span className="flex items-center gap-2 font-medium">
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
+              AI Model response is in progress... Please wait for completion before sending your next question.
+            </span>
+            <span className="text-[10px] font-mono text-indigo-400 uppercase tracking-wider font-semibold">Locked</span>
+          </div>
+        )}
+
         {/* Quick Suggestion Pills */}
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1">
           <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider shrink-0">Quick Prompts:</span>
@@ -39,8 +50,13 @@ export default function ClaudePromptInput({ onSendMessage, onQuickPrompt }) {
             return (
               <button
                 key={idx}
-                onClick={() => onQuickPrompt(qp.query)}
-                className="px-2.5 py-1 rounded-full bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-[11px] text-zinc-300 hover:text-white flex items-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer"
+                disabled={isGenerating}
+                onClick={() => !isGenerating && onQuickPrompt(qp.query)}
+                className={`px-2.5 py-1 rounded-full text-[11px] flex items-center gap-1.5 whitespace-nowrap transition-colors ${
+                  isGenerating 
+                    ? 'bg-zinc-900/40 text-zinc-600 border border-zinc-800/40 cursor-not-allowed'
+                    : 'bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white cursor-pointer'
+                }`}
               >
                 <Icon className="w-3 h-3 text-indigo-400" />
                 {qp.label}
@@ -52,15 +68,24 @@ export default function ClaudePromptInput({ onSendMessage, onQuickPrompt }) {
         {/* Input Box Container */}
         <form 
           onSubmit={handleSubmit}
-          className="relative rounded-2xl bg-zinc-900 border border-zinc-800 focus-within:border-indigo-500/80 focus-within:ring-2 focus-within:ring-indigo-500/20 shadow-xl transition-all p-2 sm:p-3"
+          className={`relative rounded-2xl bg-zinc-900 border transition-all p-2 sm:p-3 ${
+            isGenerating
+              ? 'border-zinc-800 opacity-60'
+              : 'border-zinc-800 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20 shadow-xl'
+          }`}
         >
           <textarea
             rows={2}
             value={prompt}
+            disabled={isGenerating}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask Claude anything about this meeting, audio transcript, or action items... (Shift+Enter for new line)"
-            className="w-full bg-transparent text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none px-2"
+            placeholder={
+              isGenerating
+                ? 'Generating response... Input disabled until complete.'
+                : 'Ask Claude anything about this meeting, audio transcript, or action items... (Shift+Enter for new line)'
+            }
+            className="w-full bg-transparent text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none px-2 disabled:cursor-not-allowed"
           />
 
           <div className="flex items-center justify-between pt-2 border-t border-zinc-800/60 mt-1 px-1">
@@ -68,22 +93,24 @@ export default function ClaudePromptInput({ onSendMessage, onQuickPrompt }) {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => alert('Audio file picker opened! Supports .mp3, .m4a, .wav')}
-                className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
-                title="Attach audio or transcript file"
+                disabled={isGenerating}
+                onClick={() => alert('Audio file attach supported.')}
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Attach file"
               >
                 <Paperclip className="w-4 h-4" />
               </button>
 
               <button
                 type="button"
+                disabled={isGenerating}
                 onClick={() => setIsRecording(!isRecording)}
-                className={`p-1.5 rounded-lg transition-colors flex items-center gap-1.5 text-xs ${
+                className={`p-1.5 rounded-lg transition-colors flex items-center gap-1.5 text-xs disabled:opacity-40 disabled:cursor-not-allowed ${
                   isRecording 
                     ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30 animate-pulse' 
                     : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
                 }`}
-                title="Voice input simulation"
+                title="Voice input"
               >
                 <Mic className="w-4 h-4" />
                 {isRecording && <span className="text-[10px] font-mono">Listening...</span>}
@@ -92,18 +119,18 @@ export default function ClaudePromptInput({ onSendMessage, onQuickPrompt }) {
 
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-mono text-zinc-500 hidden sm:inline">
-                Claude 3.5 Sonnet Active
+                {isGenerating ? 'Response Streaming...' : 'RAG Agent Ready'}
               </span>
               <button
                 type="submit"
-                disabled={!prompt.trim()}
-                className={`p-2 rounded-xl text-white font-semibold transition-all cursor-pointer ${
-                  prompt.trim()
-                    ? 'bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/30'
+                disabled={!prompt.trim() || isGenerating}
+                className={`p-2 rounded-xl text-white font-semibold transition-all ${
+                  prompt.trim() && !isGenerating
+                    ? 'bg-indigo-600 hover:bg-indigo-500 cursor-pointer shadow-md shadow-indigo-600/20'
                     : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
                 }`}
               >
-                <Send className="w-4 h-4" />
+                {isGenerating ? <Loader2 className="w-4 h-4 animate-spin text-indigo-400" /> : <Send className="w-4 h-4" />}
               </button>
             </div>
 

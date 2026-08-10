@@ -9,6 +9,7 @@ import TranscriptTab from './TranscriptTab';
 import AnalyticsTab from './AnalyticsTab';
 import UploadModal from './UploadModal';
 import SettingsModal from './SettingsModal';
+import { HeaderSkeleton, ChatSkeleton, SummarySkeleton } from './SkeletonLoader';
 import { api } from '../../services/api';
 
 export default function ClaudeWorkspace() {
@@ -22,6 +23,7 @@ export default function ClaudeWorkspace() {
   const [searchQuery, setSearchQuery] = useState('');
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false); // Locking state during RAG response generation
 
   // Fetch all meeting details (action items, chunks, outputs) for selected meeting from DB
   const loadMeetingDetails = useCallback(async (meeting) => {
@@ -29,15 +31,12 @@ export default function ClaudeWorkspace() {
     const meetingId = meeting.id || meeting.pinecone_namespace;
     
     try {
-      // Fetch action items from DB
       const actionItemsRes = await api.getActionItems(meetingId).catch(() => ({ data: [] }));
       const actionItems = actionItemsRes.data || [];
 
-      // Fetch chunks / transcripts from DB
       const chunksRes = await api.getMeetingChunks(meetingId).catch(() => ({ data: [] }));
       const chunks = chunksRes.data || [];
 
-      // Fetch output metadata / summary from DB
       const outputsRes = await api.getMeetingOutputs(meetingId).catch(() => ({ data: [] }));
       const outputs = outputsRes.data || [];
 
@@ -85,7 +84,6 @@ export default function ClaudeWorkspace() {
 
       setSelectedMeeting(fullMeetingObj);
 
-      // Initial welcome message from assistant for this meeting
       setMessages([
         {
           id: 'welcome-msg',
@@ -100,8 +98,29 @@ export default function ClaudeWorkspace() {
     }
   }, []);
 
-  // Initial load of user meetings from Supabase database API
   const fetchMeetingsFromDb = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await api.getMeetings();
+      const dbMeetings = response.data || [];
+      setMeetings(dbMeetings);
+      if (dbMeetings.length > 0) {
+        await loadMeetingDetails(dbMeetings[0]);
+      } else {
+        setSelectedMeeting(null);
+        setMessages([]);
+      }
+    } catch (err) {
+      console.warn('Could not fetch meetings from backend DB:', err);
+      setMeetings([]);
+      setSelectedMeeting(null);
+    } fontinally: {
+      setLoading(false);
+    }
+  }, [loadMeetingDetails]);
+
+  // Use try-finally block cleanly
+  const loadInitialData = useCallback(async () => {
     setLoading(true);
     try {
       const response = await api.getMeetings();
@@ -123,16 +142,19 @@ export default function ClaudeWorkspace() {
   }, [loadMeetingDetails]);
 
   useEffect(() => {
-    fetchMeetingsFromDb();
-  }, [fetchMeetingsFromDb]);
+    loadInitialData();
+  }, [loadInitialData]);
 
   const handleSelectMeeting = async (m) => {
+    if (isGenerating) return;
     setIsMobileSidebarOpen(false);
     await loadMeetingDetails(m);
   };
 
   const handleSendMessage = async (text) => {
-    if (!text.trim()) return;
+    if (!text.trim() || isGenerating) return;
+
+    setIsGenerating(true);
 
     const userMsg = {
       id: 'msg-' + Date.now(),
@@ -159,7 +181,6 @@ export default function ClaudeWorkspace() {
       setMessages((prev) => [...prev, aiMsg]);
     } catch (err) {
       console.error('Error querying backend AI Agent:', err);
-      // Fallback assistant response if backend RAG service is responding offline
       const aiMsg = {
         id: 'msg-' + (Date.now() + 1),
         sender: 'assistant',
@@ -167,16 +188,18 @@ export default function ClaudeWorkspace() {
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, aiMsg]);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
   const handleUploadSuccess = async () => {
-    await fetchMeetingsFromDb();
+    await loadInitialData();
     setActiveTab('summary');
   };
 
   return (
-    <div className="h-screen w-screen flex bg-zinc-950 dark:bg-zinc-950 light:bg-zinc-50 overflow-hidden font-sans text-zinc-100 selection:bg-indigo-500 selection:text-white">
+    <div className="h-screen w-screen flex bg-zinc-950 font-sans text-zinc-100 selection:bg-indigo-600 selection:text-white">
       
       {/* Desktop Sidebar */}
       <div className="hidden md:block">
@@ -188,6 +211,7 @@ export default function ClaudeWorkspace() {
           onOpenSettings={() => setIsSettingsOpen(true)}
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          loading={loading}
         />
       </div>
 
@@ -207,6 +231,7 @@ export default function ClaudeWorkspace() {
               onOpenSettings={() => { setIsMobileSidebarOpen(false); setIsSettingsOpen(true); }}
               isCollapsed={false}
               onToggleCollapse={() => setIsMobileSidebarOpen(false)}
+              loading={loading}
             />
           </div>
         </div>
@@ -216,25 +241,26 @@ export default function ClaudeWorkspace() {
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         
         {/* Workspace Top Header */}
-        <ClaudeHeader
-          meeting={selectedMeeting}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          onToggleMobileSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
-          onSearchChange={setSearchQuery}
-          searchQuery={searchQuery}
-        />
+        {loading ? (
+          <HeaderSkeleton />
+        ) : (
+          <ClaudeHeader
+            meeting={selectedMeeting}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            onToggleMobileSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+            onSearchChange={setSearchQuery}
+            searchQuery={searchQuery}
+          />
+        )}
 
         {/* Tab View Container */}
-        <div className="flex-1 overflow-y-auto relative">
+        <div className="flex-1 overflow-y-auto relative bg-zinc-950">
           {loading ? (
-            <div className="h-full flex items-center justify-center p-8 space-y-3 flex-col text-center">
-              <div className="w-8 h-8 border-3 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-xs text-zinc-400 font-mono">Loading meeting data from database...</p>
-            </div>
+            activeTab === 'chat' ? <ChatSkeleton /> : <SummarySkeleton />
           ) : !selectedMeeting ? (
             <div className="h-full flex items-center justify-center p-8 flex-col text-center max-w-md mx-auto space-y-4">
-              <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
+              <div className="w-14 h-14 rounded-2xl bg-indigo-950 border border-indigo-500/30 text-indigo-400 flex items-center justify-center">
                 <span className="text-2xl">⚡</span>
               </div>
               <h2 className="text-xl font-bold text-white">No Meetings Found in Database</h2>
@@ -243,7 +269,7 @@ export default function ClaudeWorkspace() {
               </p>
               <button
                 onClick={() => setIsUploadOpen(true)}
-                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-lg shadow-indigo-600/30 transition-all cursor-pointer"
+                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-md transition-all cursor-pointer"
               >
                 + Process New Meeting
               </button>
@@ -253,7 +279,7 @@ export default function ClaudeWorkspace() {
               {activeTab === 'chat' && (
                 <ClaudeChatArea
                   messages={messages}
-                  onQuickPrompt={handleSendMessage}
+                  isGenerating={isGenerating}
                 />
               )}
 
@@ -294,6 +320,7 @@ export default function ClaudeWorkspace() {
           <ClaudePromptInput
             onSendMessage={handleSendMessage}
             onQuickPrompt={handleSendMessage}
+            isGenerating={isGenerating}
           />
         )}
 

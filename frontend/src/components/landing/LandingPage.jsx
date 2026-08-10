@@ -16,7 +16,6 @@ export default function LandingPage() {
         <FeaturesSection />
         <DemoSection />
         <TestimonialsSection />
-        <PricingSection />
       </main>
       <Footer />
     </div>

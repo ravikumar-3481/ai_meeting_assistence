@@ -23,7 +23,7 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 backdrop-blur-xl bg-zinc-950/80 dark:bg-zinc-950/90 light:bg-white/90 border-b border-zinc-800/60 dark:border-zinc-800/80 light:border-zinc-200 transition-colors">
+    <header className="sticky top-0 z-50 backdrop-blur-xl bg-zinc-950/90 border-b border-zinc-800 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20">
           
@@ -32,44 +32,42 @@ export default function Navbar() {
             onClick={() => navigateTo('landing')}
             className="flex items-center gap-3 cursor-pointer group"
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-emerald-500 p-[1.5px] shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-transform duration-200">
-              <div className="w-full h-full bg-zinc-950 rounded-[10.5px] flex items-center justify-center">
-                <Bot className="w-5 h-5 text-indigo-400 group-hover:text-emerald-400 transition-colors" />
-              </div>
+            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-md text-white group-hover:bg-indigo-500 transition-all">
+              <Bot className="w-5 h-5" />
             </div>
             <div className="flex flex-col">
-              <span className="font-bold text-lg tracking-tight text-zinc-100 dark:text-zinc-100 light:text-zinc-900 group-hover:text-indigo-400 transition-colors flex items-center gap-1.5">
-                MeetingSense <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-medium">AI</span>
+              <span className="font-bold text-lg tracking-tight text-zinc-100 group-hover:text-indigo-400 transition-colors flex items-center gap-1.5">
+                MeetingSense <span className="text-xs px-2 py-0.5 rounded-md bg-indigo-950 text-indigo-400 border border-indigo-500/30 font-semibold">AI</span>
               </span>
-              <span className="text-[10px] text-zinc-400 font-mono tracking-wider">CLAUDE-POWERED</span>
+              <span className="text-[10px] text-zinc-500 font-mono tracking-wider">CLAUDE-POWERED</span>
             </div>
           </div>
 
           {/* Desktop Navigation Links */}
           {activeView === 'landing' && (
-            <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-300 dark:text-zinc-300 light:text-zinc-600">
+            <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-300">
               <button 
                 onClick={() => handleNavClick('features')} 
-                className="hover:text-white dark:hover:text-white light:hover:text-black transition-colors"
+                className="hover:text-white transition-colors"
               >
                 Features
               </button>
               <button 
                 onClick={() => handleNavClick('demo')} 
-                className="hover:text-white dark:hover:text-white light:hover:text-black transition-colors flex items-center gap-1"
+                className="hover:text-white transition-colors flex items-center gap-1"
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
                 Live Demo
               </button>
               <button 
                 onClick={() => handleNavClick('testimonials')} 
-                className="hover:text-white dark:hover:text-white light:hover:text-black transition-colors"
+                className="hover:text-white transition-colors"
               >
                 Wall of Love
               </button>
               <button 
                 onClick={() => handleNavClick('pricing')} 
-                className="hover:text-white dark:hover:text-white light:hover:text-black transition-colors"
+                className="hover:text-white transition-colors"
               >
                 Pricing
               </button>
@@ -78,13 +76,12 @@ export default function Navbar() {
 
           {/* Right Action Items & Theme Toggle */}
           <div className="hidden sm:flex items-center gap-3">
-            {/* Theme Toggle Button */}
             <ThemeToggle />
 
             {isAuthenticated ? (
               <button
                 onClick={() => navigateTo('app')}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 shadow-md shadow-indigo-500/20 hover:shadow-indigo-500/30 transition-all cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md transition-all cursor-pointer"
               >
                 Go to Workspace
                 <ArrowRight className="w-4 h-4" />
@@ -93,13 +90,13 @@ export default function Navbar() {
               <>
                 <button
                   onClick={() => navigateTo('auth', 'login')}
-                  className="px-4 py-2 rounded-xl text-sm font-medium text-zinc-300 hover:text-white dark:text-zinc-300 dark:hover:text-white light:text-zinc-700 light:hover:text-black hover:bg-zinc-800/50 transition-all cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-sm font-medium text-zinc-300 hover:text-white hover:bg-zinc-900 transition-all cursor-pointer"
                 >
                   Log in
                 </button>
                 <button
                   onClick={() => navigateTo('auth', 'signup')}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-all cursor-pointer"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md transition-all cursor-pointer"
                 >
                   Sign Up Free
                   <ArrowRight className="w-4 h-4" />
@@ -191,15 +188,6 @@ export default function Navbar() {
                     className="w-full text-center py-2 rounded-xl font-semibold text-white bg-indigo-600"
                   >
                     Sign Up Free
-                  </button>
-                  <button
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      demoLogin();
-                    }}
-                    className="w-full text-center py-2 rounded-xl text-xs text-amber-300 bg-amber-500/10 border border-amber-500/20"
-                  >
-                    ⚡ Instant Demo Access
                   </button>
                 </>
               )}

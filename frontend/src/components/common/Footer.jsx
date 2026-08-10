@@ -13,10 +13,8 @@ export default function Footer() {
           {/* Brand Col */}
           <div className="md:col-span-2 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-emerald-500 p-[1.5px]">
-                <div className="w-full h-full bg-zinc-950 rounded-[10.5px] flex items-center justify-center">
-                  <Bot className="w-4 h-4 text-indigo-400" />
-                </div>
+              <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md">
+                <Bot className="w-4 h-4" />
               </div>
               <span className="font-bold text-lg text-white tracking-tight">MeetingSense AI</span>
             </div>
