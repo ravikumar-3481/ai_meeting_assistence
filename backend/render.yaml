@@ -1,0 +1,57 @@
+services:
+  - type: web
+    name: ai-meeting-backend
+    runtime: python-3.12
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      # API Keys - Add these as secrets in Render dashboard
+      - key: MISTRAL_API_KEY
+        sync: false
+      - key: DEEPGRAM_API_KEY
+        sync: false
+      - key: SARVAM_API_KEY
+        sync: false
+      - key: HUGGINGFACE_API_TOKEN
+        sync: false
+      - key: PINECONE_API_KEY
+        sync: false
+      
+      # Pinecone Configuration
+      - key: PINECONE_INDEX_NAME
+        value: your-index-name
+      - key: PINECONE_CLOUD
+        value: aws
+      - key: PINECONE_REGION
+        value: us-east-1
+      
+      # Sarvam Configuration
+      - key: SARVAM_STT_TRANSLATE_URL
+        sync: false
+      - key: SARVAM_MODEL
+        value: sarvam:3b-v1
+      
+      # Supabase Configuration - Add these as secrets
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      
+      # CORS Configuration
+      - key: ALLOWED_ORIGINS
+        value: https://ai-meeting-assistence.vercel.app/
+      
+      # Optional: FFmpeg location (if processing audio server-side)
+      - key: FFMPEG_LOCATION
+        value: /usr/bin/ffmpeg
+    
+    scaling:
+      minInstances: 1
+      maxInstances: 3
+      targetMemoryPercent: 80
+    
+    resources:
+      cpuCount: 0.5
+      memoryMB: 1024
