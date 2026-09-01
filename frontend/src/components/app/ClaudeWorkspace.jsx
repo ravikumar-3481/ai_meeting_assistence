@@ -10,7 +10,7 @@ import AnalyticsTab from './AnalyticsTab';
 import UploadModal from './UploadModal';
 import SettingsModal from './SettingsModal';
 import { HeaderSkeleton, ChatSkeleton, SummarySkeleton } from './SkeletonLoader';
-import { api } from '../../services/api';
+import { api, API_BASE_URL } from '../../services/api';
 
 export default function ClaudeWorkspace() {
   const [meetings, setMeetings] = useState([]);
@@ -162,7 +162,7 @@ export default function ClaudeWorkspace() {
       const aiMsg = {
         id: 'msg-' + (Date.now() + 1),
         sender: 'assistant',
-        text: `Analysis for question: "${text}"\n\n- Data queried from database session \`${meetingId}\`.\n- Note: Ensure FastAPI backend server is running on http://localhost:8000.`,
+        text: `Analysis for question: "${text}"\n\n- Data queried from database session \`${meetingId}\`.\n- Note: Ensure backend server is running on ${API_BASE_URL}.`,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, aiMsg]);
