@@ -1,0 +1,81 @@
+# ==============================================================================
+# Docker Ignore Configuration for AI Meeting Assistance Backend
+# ==============================================================================
+
+# Version Control
+.git
+.gitignore
+.gitattributes
+.github
+
+# Virtual Environments
+.venv
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# Python Bytecode & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+.eggs/
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+tests/
+testing/
+testing.py
+conftest.py
+
+# Sensitive Environment Files (DO NOT copy secrets into image)
+.env
+.env.*
+!.env.example
+
+# Runtime & Local Data Directories (keep empty directories clean)
+data/downloads/*
+data/outputs/*
+data/uploads/*
+!data/downloads/.gitkeep
+!data/outputs/.gitkeep
+!data/uploads/.gitkeep
+*.wav
+*.mp3
+*.m4a
+*.webm
+*.pdf
+*.log
+logs/
+
+# IDE & Editor Settings
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Agent & Platform Configurations
+.agents/
+skills-lock.json
+render.yaml
+vercel.json
+walkthrough.md
+*.md
+
+# Docker Artifacts
+Dockerfile
+docker-compose*.yml
+.dockerignore
