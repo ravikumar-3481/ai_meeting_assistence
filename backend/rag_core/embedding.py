@@ -21,10 +21,16 @@ class Embeddings:
 
     def _initialize_client(self):
         try:
-            self.client = InferenceClient(
-                provider="hf-inference",
-                api_key=Config().huggingface_api_token.get_secret_value()
-            )
+            import os
+            cfg = Config()
+            token = cfg.huggingface_api_token.get_secret_value() if cfg.huggingface_api_token else None
+            if not token:
+                token = os.getenv("HUGGINGFACE_API_TOKEN")
+
+            try:
+                self.client = InferenceClient(token=token)
+            except Exception:
+                self.client = InferenceClient(provider="hf-inference", api_key=token)
         except Exception as exc:
             self.log.warning(f"Inference client could not be initialized: {exc}")
             self.client = None

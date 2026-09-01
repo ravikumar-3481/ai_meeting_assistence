@@ -98,32 +98,10 @@ export default function ClaudeWorkspace() {
     }
   }, []);
 
-  const fetchMeetingsFromDb = useCallback(async () => {
+  const loadInitialData = useCallback(async (forceRefresh = false) => {
     setLoading(true);
     try {
-      const response = await api.getMeetings();
-      const dbMeetings = response.data || [];
-      setMeetings(dbMeetings);
-      if (dbMeetings.length > 0) {
-        await loadMeetingDetails(dbMeetings[0]);
-      } else {
-        setSelectedMeeting(null);
-        setMessages([]);
-      }
-    } catch (err) {
-      console.warn('Could not fetch meetings from backend DB:', err);
-      setMeetings([]);
-      setSelectedMeeting(null);
-    } fontinally: {
-      setLoading(false);
-    }
-  }, [loadMeetingDetails]);
-
-  // Use try-finally block cleanly
-  const loadInitialData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await api.getMeetings();
+      const response = await api.getMeetings({ forceRefresh });
       const dbMeetings = response.data || [];
       setMeetings(dbMeetings);
       if (dbMeetings.length > 0) {
@@ -194,7 +172,7 @@ export default function ClaudeWorkspace() {
   };
 
   const handleUploadSuccess = async () => {
-    await loadInitialData();
+    await loadInitialData(true);
     setActiveTab('summary');
   };
 

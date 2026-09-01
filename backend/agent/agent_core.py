@@ -1,4 +1,10 @@
-from langchain.agents import create_agent
+try:
+    from langchain.agents import create_agent
+except (ImportError, AttributeError):
+    from langgraph.prebuilt import create_react_agent
+    def create_agent(model, tools, system_prompt=None, **kwargs):
+        return create_react_agent(model=model, tools=tools, prompt=system_prompt, **kwargs)
+
 from agent.prompts.system_prompt import SystemPrompt
 from llm.llm_model import LLM
 from utils.logger import Logger

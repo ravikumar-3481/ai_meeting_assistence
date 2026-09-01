@@ -1,3 +1,5 @@
+import { clientCache, CACHE_TTL } from './cache';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 function getAuthHeaders() {
@@ -40,6 +42,9 @@ async function request(endpoint, options = {}) {
 }
 
 export const api = {
+  // Direct access to client cache
+  cache: clientCache,
+
   // Authentication
   register: async (email, password, fullName) => {
     return request('/api/v1/auth/register', {
@@ -49,6 +54,7 @@ export const api = {
   },
 
   login: async (email, password) => {
+    clientCache.clear();
     return request('/api/v1/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
@@ -68,58 +74,98 @@ export const api = {
     } catch (e) {
       console.warn('Logout API warning:', e);
     }
+    clientCache.clear();
     localStorage.removeItem('meeting_sense_token');
     localStorage.removeItem('meeting_sense_user');
   },
 
-  getProfile: async () => {
-    return request('/api/v1/auth/me', { method: 'GET' });
+  getProfile: async (options = {}) => {
+    return clientCache.fetchWithCache(
+      'profile:me',
+      () => request('/api/v1/auth/me', { method: 'GET' }),
+      { ttl: CACHE_TTL.PROFILE, forceRefresh: options.forceRefresh }
+    );
   },
 
   // Meetings
-  getMeetings: async () => {
-    return request('/api/v1/meetings', { method: 'GET' });
+  getMeetings: async (options = {}) => {
+    return clientCache.fetchWithCache(
+      'meetings:list',
+      () => request('/api/v1/meetings', { method: 'GET' }),
+      {
+        ttl: CACHE_TTL.MEETINGS,
+        forceRefresh: options.forceRefresh,
+        staleWhileRevalidate: true,
+      }
+    );
   },
 
   processMeeting: async (urlOrPath, language = 'english') => {
-    return request('/api/v1/meetings/process', {
+    const res = await request('/api/v1/meetings/process', {
       method: 'POST',
       body: JSON.stringify({ url_or_path: urlOrPath, language }),
     });
+    // Invalidate meetings list in cache
+    clientCache.invalidate('meetings:list');
+    return res;
   },
 
   loadMeeting: async (meetingId) => {
-    return request('/api/v1/meetings/load', {
+    const res = await request('/api/v1/meetings/load', {
       method: 'POST',
       body: JSON.stringify({ meeting_id: meetingId }),
     });
+    clientCache.invalidate('meetings:list');
+    return res;
   },
 
-  getMeetingChunks: async (meetingId) => {
-    return request(`/api/v1/meetings/${encodeURIComponent(meetingId)}/chunks`, { method: 'GET' });
+  getMeetingChunks: async (meetingId, options = {}) => {
+    return clientCache.fetchWithCache(
+      `chunks:${meetingId}`,
+      () => request(`/api/v1/meetings/${encodeURIComponent(meetingId)}/chunks`, { method: 'GET' }),
+      { ttl: CACHE_TTL.CHUNKS, persist: true, forceRefresh: options.forceRefresh }
+    );
   },
 
-  getMeetingOutputs: async (meetingId) => {
-    return request(`/api/v1/meetings/${encodeURIComponent(meetingId)}/outputs`, { method: 'GET' });
+  getMeetingOutputs: async (meetingId, options = {}) => {
+    return clientCache.fetchWithCache(
+      `outputs:${meetingId}`,
+      () => request(`/api/v1/meetings/${encodeURIComponent(meetingId)}/outputs`, { method: 'GET' }),
+      { ttl: CACHE_TTL.OUTPUTS, forceRefresh: options.forceRefresh }
+    );
   },
 
   // Action Items
-  getActionItems: async (meetingId) => {
-    return request(`/api/v1/meetings/${encodeURIComponent(meetingId)}/action-items`, { method: 'GET' });
+  getActionItems: async (meetingId, options = {}) => {
+    return clientCache.fetchWithCache(
+      `action_items:${meetingId}`,
+      () => request(`/api/v1/meetings/${encodeURIComponent(meetingId)}/action-items`, { method: 'GET' }),
+      { ttl: CACHE_TTL.ACTION_ITEMS, forceRefresh: options.forceRefresh }
+    );
   },
 
   createActionItem: async (meetingId, task, owner, dueDate) => {
-    return request(`/api/v1/meetings/${encodeURIComponent(meetingId)}/action-items`, {
+    const res = await request(`/api/v1/meetings/${encodeURIComponent(meetingId)}/action-items`, {
       method: 'POST',
       body: JSON.stringify({ task, owner, due_date: dueDate }),
     });
+    // Invalidate cached action items for this meeting
+    clientCache.invalidate(`action_items:${meetingId}`);
+    return res;
   },
 
-  updateActionItemStatus: async (actionItemId, status) => {
-    return request(`/api/v1/action-items/${encodeURIComponent(actionItemId)}`, {
+  updateActionItemStatus: async (actionItemId, status, meetingId = null) => {
+    const res = await request(`/api/v1/action-items/${encodeURIComponent(actionItemId)}`, {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     });
+    // Invalidate cached action items
+    if (meetingId) {
+      clientCache.invalidate(`action_items:${meetingId}`);
+    } else {
+      clientCache.invalidate(/^action_items:/);
+    }
+    return res;
   },
 
   // Audio & Transcribe
@@ -132,18 +178,24 @@ export const api = {
   },
 
   // AI Chat Agent Query
-  sendChatQuery: async (meetingId, question, chatHistory = []) => {
-    return request('/api/v1/chat/query', {
-      method: 'POST',
-      body: JSON.stringify({
-        meeting_id: meetingId,
-        question,
-        chat_history: chatHistory.map((m) => ({
-          role: m.sender === 'user' ? 'human' : 'assistant',
-          content: m.text,
-        })),
-      }),
-    });
+  sendChatQuery: async (meetingId, question, chatHistory = [], options = {}) => {
+    const cacheKey = `chat:${meetingId}:${question.trim().toLowerCase()}:${chatHistory.length}`;
+    return clientCache.fetchWithCache(
+      cacheKey,
+      () =>
+        request('/api/v1/chat/query', {
+          method: 'POST',
+          body: JSON.stringify({
+            meeting_id: meetingId,
+            question,
+            chat_history: chatHistory.map((m) => ({
+              role: m.sender === 'user' ? 'human' : 'assistant',
+              content: m.text,
+            })),
+          }),
+        }),
+      { ttl: CACHE_TTL.CHAT, forceRefresh: options.forceRefresh }
+    );
   },
 
   // Audit Logs
@@ -151,3 +203,4 @@ export const api = {
     return request('/api/v1/audit-logs', { method: 'GET' });
   },
 };
+

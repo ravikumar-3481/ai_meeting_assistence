@@ -22,7 +22,7 @@ export default function ActionItemsTab({ meetingId, actionItems = [] }) {
       prev.map((it) => (it.id === id ? { ...it, status: newStatus, completed: newStatus === 'completed' } : it))
     );
     try {
-      await api.updateActionItemStatus(id, newStatus);
+      await api.updateActionItemStatus(id, newStatus, meetingId);
     } catch (e) {
       console.warn('Action item status update in DB notice:', e);
     }

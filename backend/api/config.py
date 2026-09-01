@@ -1,12 +1,13 @@
+from typing import Optional
 from pydantic import SecretStr, field_validator, HttpUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Config(BaseSettings):
-    mistral_api_key: SecretStr
+    mistral_api_key: Optional[SecretStr] = None
     deepgram_api_key: SecretStr
     sarvam_api_key: SecretStr
-    huggingface_api_token: SecretStr
+    huggingface_api_token: Optional[SecretStr] = None
     pinecone_api_key: SecretStr
     pinecone_index_name: str
     pinecone_cloud: str = "aws"
@@ -37,8 +38,8 @@ class Config(BaseSettings):
         mode="after",
     )
     @classmethod
-    def not_empty(cls, value: SecretStr) -> SecretStr:
-        if not value.get_secret_value().strip():
+    def not_empty(cls, value: Optional[SecretStr]) -> Optional[SecretStr]:
+        if value is not None and not value.get_secret_value().strip():
             raise ValueError("API key cannot be empty")
         return value
 

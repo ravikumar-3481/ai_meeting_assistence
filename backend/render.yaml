@@ -19,7 +19,7 @@ services:
       
       # Pinecone Configuration
       - key: PINECONE_INDEX_NAME
-        value: your-index-name
+        value: meeting-assistant
       - key: PINECONE_CLOUD
         value: aws
       - key: PINECONE_REGION

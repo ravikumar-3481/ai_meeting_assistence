@@ -24,6 +24,7 @@ from langchain_core.messages import HumanMessage, AIMessage
 import uvicorn
 
 from utils.logger import Logger
+from utils.cache import backend_cache
 from api.config import Config
 from authentication.auth_model import AuthService
 from database.client import get_user_client
@@ -273,12 +274,26 @@ async def logout(current_user: Dict[str, Any] = Depends(get_current_user)):
         auth_service.sign_out(access_token=current_user["access_token"])
     except Exception as e:
         log.warning(f"Sign-out non-fatal error: {e}")
+    # Invalidate cached user session data
+    backend_cache.delete(f"profile:{current_user['id']}")
+    backend_cache.delete(f"meetings:{current_user['id']}")
     return APIResponse(success=True, message="Logged out.", data=None)
 
 
 @app.get("/api/v1/auth/me", response_model=APIResponse, tags=["User Profile"])
-async def get_my_profile(current_user: Dict[str, Any] = Depends(get_current_user)):
+async def get_my_profile(
+    response: Response,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    cache_key = f"profile:{current_user['id']}"
+    cached_profile = backend_cache.get(cache_key)
+    if cached_profile is not None:
+        response.headers["X-Cache"] = "HIT"
+        return APIResponse(success=True, message="Profile fetched (cached).", data=cached_profile)
+
+    response.headers["X-Cache"] = "MISS"
     profile = fetch_user_profile(current_user["id"]) or current_user
+    backend_cache.set(cache_key, profile, ttl=180)
     return APIResponse(success=True, message="Profile fetched.", data=profile)
 
 
@@ -290,6 +305,7 @@ async def update_my_profile(
 ):
     try:
         updated = update_user_profile(user_id=current_user["id"], full_name=full_name, email=email)
+        backend_cache.delete(f"profile:{current_user['id']}")
         return APIResponse(success=True, message="Profile updated.", data=updated)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Update failed: {e}")
@@ -307,6 +323,9 @@ async def api_process_meeting(
             user_id=user_id,
             language=payload.language.value,
         )
+        # Invalidate meetings list cache
+        backend_cache.delete(f"meetings:{user_id}")
+        backend_cache.invalidate_prefix("meetings:")
         return APIResponse(
             success=True,
             message="Meeting processed and indexed.",
@@ -324,6 +343,7 @@ async def api_load_meeting(
     user_id = current_user["id"]
     try:
         meeting_id, title = load_existing_meeting(meeting_id=payload.meeting_id, user_id=user_id)
+        backend_cache.delete(f"meetings:{user_id}")
         return APIResponse(
             success=True,
             message="Meeting loaded.",
@@ -334,26 +354,56 @@ async def api_load_meeting(
 
 
 @app.get("/api/v1/meetings", response_model=APIResponse, tags=["Meetings"])
-async def list_meetings(current_user: Dict[str, Any] = Depends(get_current_user)):
+async def list_meetings(
+    response: Response,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    cache_key = f"meetings:{current_user['id']}"
+    cached_meetings = backend_cache.get(cache_key)
+    if cached_meetings is not None:
+        response.headers["X-Cache"] = "HIT"
+        return APIResponse(success=True, message=f"Retrieved {len(cached_meetings)} meetings (cached).", data=cached_meetings)
+
+    response.headers["X-Cache"] = "MISS"
     meetings = fetch_user_meeting_list(user_id=current_user["id"])
+    backend_cache.set(cache_key, meetings, ttl=60)
     return APIResponse(success=True, message=f"Retrieved {len(meetings)} meetings.", data=meetings)
 
 
 @app.get("/api/v1/meetings/{meeting_id}/chunks", response_model=APIResponse, tags=["Meetings"])
 async def get_meeting_chunks(
+    response: Response,
     meeting_id: str = Path(...),
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):
+    cache_key = f"chunks:{meeting_id}"
+    cached_chunks = backend_cache.get(cache_key)
+    if cached_chunks is not None:
+        response.headers["X-Cache"] = "HIT"
+        return APIResponse(success=True, message=f"Retrieved {len(cached_chunks)} chunks (cached).", data=cached_chunks)
+
+    response.headers["X-Cache"] = "MISS"
     chunks = fetch_meeting_chunks_meta(meeting_id)
+    # Chunks are immutable once created, cache for 10 minutes
+    backend_cache.set(cache_key, chunks, ttl=600)
     return APIResponse(success=True, message=f"Retrieved {len(chunks)} chunks.", data=chunks)
 
 
 @app.get("/api/v1/meetings/{meeting_id}/outputs", response_model=APIResponse, tags=["Meetings"])
 async def get_meeting_outputs(
+    response: Response,
     meeting_id: str = Path(...),
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):
+    cache_key = f"outputs:{meeting_id}"
+    cached_outputs = backend_cache.get(cache_key)
+    if cached_outputs is not None:
+        response.headers["X-Cache"] = "HIT"
+        return APIResponse(success=True, message=f"Retrieved {len(cached_outputs)} output records (cached).", data=cached_outputs)
+
+    response.headers["X-Cache"] = "MISS"
     outputs = fetch_meeting_outputs_history(meeting_id)
+    backend_cache.set(cache_key, outputs, ttl=300)
     return APIResponse(success=True, message=f"Retrieved {len(outputs)} output records.", data=outputs)
 
 
@@ -403,11 +453,23 @@ async def api_transcribe_audio(
 @app.post("/api/v1/chat/query", response_model=APIResponse, tags=["AI Agent & Chat"])
 async def api_chat_query(
     payload: ChatQueryRequest,
+    response: Response,
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):
     user_id = current_user["id"]
     session_id = f"{user_id}:{payload.meeting_id}"
+    cache_key = f"chat:{payload.meeting_id}:{hash(payload.question.strip().lower())}:{len(payload.chat_history)}"
 
+    cached_chat = backend_cache.get(cache_key)
+    if cached_chat is not None:
+        response.headers["X-Cache"] = "HIT"
+        return APIResponse(
+            success=True,
+            message="Query executed (cached).",
+            data=cached_chat,
+        )
+
+    response.headers["X-Cache"] = "MISS"
     try:
         agent = get_agent_for_session(user_id=user_id, meeting_id=payload.meeting_id)
 
@@ -425,15 +487,18 @@ async def api_chat_query(
             session_id=session_id,
         )
 
+        result_data = {
+            "meeting_id": payload.meeting_id,
+            "session_id": session_id,
+            "answer": answer,
+            "history_length": len(updated_history),
+        }
+        backend_cache.set(cache_key, result_data, ttl=300)
+
         return APIResponse(
             success=True,
             message="Query executed.",
-            data={
-                "meeting_id": payload.meeting_id,
-                "session_id": session_id,
-                "answer": answer,
-                "history_length": len(updated_history),
-            },
+            data=result_data,
         )
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Agent query failed: {e}")
@@ -441,18 +506,32 @@ async def api_chat_query(
 
 @app.post("/api/v1/chat/cross-meeting", response_model=APIResponse, tags=["AI Agent & Chat"])
 async def api_cross_meeting_query(
+    response: Response,
     question: str = Query(...),
     meeting_limit: int = Query(5, ge=1, le=20),
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):
+    cache_key = f"cross_chat:{current_user['id']}:{hash(question.strip().lower())}:{meeting_limit}"
+    cached_res = backend_cache.get(cache_key)
+    if cached_res is not None:
+        response.headers["X-Cache"] = "HIT"
+        return APIResponse(
+            success=True,
+            message="Cross-meeting search completed (cached).",
+            data=cached_res,
+        )
+
+    response.headers["X-Cache"] = "MISS"
     try:
         answer = query_cross_meeting_trend(
             question=question, user_id=current_user["id"], meeting_limit=meeting_limit
         )
+        res_data = {"question": question, "meeting_limit": meeting_limit, "answer": answer}
+        backend_cache.set(cache_key, res_data, ttl=300)
         return APIResponse(
             success=True,
             message="Cross-meeting search completed.",
-            data={"question": question, "meeting_limit": meeting_limit, "answer": answer},
+            data=res_data,
         )
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Cross-meeting search failed: {e}")
@@ -460,11 +539,20 @@ async def api_cross_meeting_query(
 
 @app.get("/api/v1/meetings/{meeting_id}/action-items", response_model=APIResponse, tags=["Action Items"])
 async def get_action_items(
+    response: Response,
     meeting_id: str = Path(...),
     status_filter: Optional[str] = Query(None, alias="status"),
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):
+    cache_key = f"action_items:{meeting_id}:{status_filter or 'all'}"
+    cached_items = backend_cache.get(cache_key)
+    if cached_items is not None:
+        response.headers["X-Cache"] = "HIT"
+        return APIResponse(success=True, message=f"Fetched {len(cached_items)} action items (cached).", data=cached_items)
+
+    response.headers["X-Cache"] = "MISS"
     items = fetch_meeting_action_items(meeting_id=meeting_id, status=status_filter)
+    backend_cache.set(cache_key, items, ttl=60)
     return APIResponse(success=True, message=f"Fetched {len(items)} action items.", data=items)
 
 
@@ -481,6 +569,8 @@ async def create_action_item(
             owner=payload.owner,
             due_date=payload.due_date,
         )
+        # Invalidate cached action items for this meeting
+        backend_cache.invalidate_prefix(f"action_items:{meeting_id}:")
         return APIResponse(success=True, message="Action item created.", data=created)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Creation failed: {e}")
@@ -497,6 +587,8 @@ async def patch_action_item_status(
 
     try:
         updated = update_action_item_status(action_item_id=action_item_id, status=payload.status.value)
+        # Invalidate all action items caches
+        backend_cache.invalidate_prefix("action_items:")
         return APIResponse(success=True, message="Action item status updated.", data=updated)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Update failed: {e}")
@@ -509,6 +601,27 @@ async def get_audit_logs(
 ):
     logs = fetch_user_audit_logs(user_id=current_user["id"], limit=limit)
     return APIResponse(success=True, message=f"Retrieved {len(logs)} audit log entries.", data=logs)
+
+
+@app.get("/api/v1/cache/stats", response_model=APIResponse, tags=["System Cache"])
+async def get_cache_stats(current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Returns memory cache diagnostic metrics, active item counts, and hit rates."""
+    return APIResponse(
+        success=True,
+        message="Cache statistics retrieved.",
+        data=backend_cache.stats(),
+    )
+
+
+@app.post("/api/v1/cache/clear", response_model=APIResponse, tags=["System Cache"])
+async def clear_cache(current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Clears all stored backend cache items."""
+    backend_cache.clear()
+    return APIResponse(
+        success=True,
+        message="Backend cache successfully cleared.",
+        data=backend_cache.stats(),
+    )
 
 
 if __name__ == "__main__":
